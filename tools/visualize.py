@@ -1,6 +1,7 @@
 """
 如意学伴 · 学习数据可视化工具
-生成答辩用的 4 张图表 PNG
+生成答辩用的 6 张图表 PNG
+用法：python visualize.py [data_bridge输出.json]
 """
 import matplotlib
 matplotlib.use('Agg')
@@ -8,7 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import numpy as np
 from datetime import date, timedelta
-import os
+import json, sys, os, subprocess
 
 # ── 中文字体 ──────────────────────────────────────────
 plt.rcParams['font.sans-serif'] = ['Microsoft YaHei', 'SimHei', 'DejaVu Sans']
@@ -32,12 +33,35 @@ GRID     = '#334155'
 
 plt.style.use('dark_background')
 
-# ── 示例数据 ──────────────────────────────────────────
+# ── 默认示例数据（无 data_bridge 输入时使用）──────────────
 WEEKDAYS = ['周一','周二','周三','周四','周五','周六','周日']
 completion = [1.0, 0.75, 1.0, 0.5, 0.75, 0.0, 0.0]   # 完成率
 hours      = [4, 3, 4, 2, 3, 0, 0]                    # 实际学时
 subjects  = {'数据结构': 8, '操作系统': 5, '计算机网络': 3, '组成原理': 2}
 weak     = {'红黑树': 3, 'PV操作': 2, '进程调度': 2, 'IP协议': 1, '链表': 1}
+pomo_completed = [4, 3, 5, 2, 4, 0, 0]
+pomo_interrupted = [1, 0, 2, 1, 0, 0, 0]
+pomo_subjects = {'数据结构': 8, '操作系统': 5, '计算机网络': 3, '组成原理': 2}
+
+# ═══════════════════════════════════════════════════════
+# 数据加载：可选传入 data_bridge 输出的 JSON
+# ═══════════════════════════════════════════════════════
+USE_REAL = False
+_data_file = sys.argv[1] if len(sys.argv) > 1 else None
+if _data_file and os.path.exists(_data_file):
+    with open(_data_file, encoding='utf-8') as f:
+        _real = json.load(f)
+    USE_REAL = _real.get('_meta', {}).get('data_is_real', False)
+    if USE_REAL:
+        weeks = _real.get('week_labels', WEEKDAYS)
+        completion = _real['completion']
+        hours = _real['hours']
+        subjects = _real.get('subjects', subjects)
+        pomo_completed = _real.get('pomo_completed', pomo_completed)
+        pomo_interrupted = _real.get('pomo_interrupted', pomo_interrupted)
+        pomo_subjects = _real.get('pomo_subjects', pomo_subjects)
+        weak = _real.get('weak', weak)
+TAG = ' [真实数据]' if USE_REAL else ''
 
 # =====================================================
 # 图表 1：每日完成率 + 学习时长（柱状图 + 折线图）
@@ -74,7 +98,7 @@ ax1.grid(axis='y', alpha=0.15, color=WHITE)
 lines1, labels1 = ax1.get_legend_handles_labels()
 lines2, labels2 = ax2.get_legend_handles_labels()
 ax1.legend(lines1+lines2, labels1+labels2, loc='upper right', fontsize=10)
-ax1.set_title('本周学习完成率趋势', color=WHITE, fontsize=15, fontweight='bold', pad=15)
+ax1.set_title(f'本周学习完成率趋势{TAG}', color=WHITE, fontsize=15, fontweight='bold', pad=15)
 fig.tight_layout()
 fig.savefig(os.path.join(OUTPUT, '01_完成率趋势.png'), dpi=150, bbox_inches='tight', facecolor=DARK_BG)
 plt.close()
@@ -202,9 +226,6 @@ print('✅ 04_薄弱知识点.png')
 # =====================================================
 # 示例数据
 pomo_days = ['周一','周二','周三','周四','周五','周六','周日']
-pomo_completed = [4, 3, 5, 2, 4, 0, 0]
-pomo_interrupted = [1, 0, 2, 1, 0, 0, 0]
-pomo_subjects = {'数据结构': 8, '操作系统': 5, '计算机网络': 3, '组成原理': 2}
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
 fig.patch.set_facecolor(DARK_BG)
@@ -215,7 +236,7 @@ ax1.bar(x, pomo_interrupted, bottom=pomo_completed, color=RED, alpha=0.7, width=
 ax1.set_xticks(x)
 ax1.set_xticklabels(pomo_days, fontsize=10, color=WHITE)
 ax1.set_ylabel('番茄数', color=WHITE, fontsize=11)
-ax1.set_ylim(0, max(pomo_completed)+2)
+ax1.set_ylim(0, max(max(pomo_completed), max(pomo_interrupted), 1) + 2)
 ax1.set_facecolor(DARK_BG)
 ax1.grid(axis='y', alpha=0.1, color=WHITE)
 ax1.tick_params(colors=WHITE)
@@ -225,11 +246,13 @@ ax1.set_title('每日番茄完成情况', color=WHITE, fontsize=13, fontweight='
 # Total label on bars
 for i, (c, inter) in enumerate(zip(pomo_completed, pomo_interrupted)):
     if c+inter > 0:
-        ax1.text(i, c+inter+0.15, f'{c+inter}', ha='center', color=WHITE, fontsize=9, fontweight='bold')
+        ax1.text(i, c+inter+0.15, str(c+inter), ha='center', color=WHITE, fontsize=9, fontweight='bold')
 
+# 数据全为零时兜底
+_pie_data = pomo_subjects if sum(pomo_subjects.values()) > 0 else {'暂无数据': 1}
 colors_pie = [GOLD, BLUE, GREEN, PURPLE]
 wedges, texts, autotexts = ax2.pie(
-    pomo_subjects.values(), labels=pomo_subjects.keys(), autopct='%1.1f%%',
+    _pie_data.values(), labels=_pie_data.keys(), autopct='%1.1f%%',
     colors=colors_pie, startangle=90,
     textprops={'color': WHITE, 'fontsize': 10},
     wedgeprops={'edgecolor': DARK_BG, 'linewidth': 2}
