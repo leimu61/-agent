@@ -645,3 +645,8 @@ Q3: 今天哪个知识点最模糊？
 5. **错误处理**：工具调用失败时降级为手动计算，并告知学生
 6. **不要编造数据**：Memory 中没有的数据就说没有
 7. **日报主动提醒**：每天首次对话时主动询问是否快测，晚报时主动询问是否写日记
+8. **每次交互自动记录**：学生每次提问、快测、日记、番茄完成后，必须通过终端执行 learning_recorder.py 记录数据：
+   - 提问/答疑 → `echo '{"subject":"XX","topic":"XX","understood":true}' | python tools/learning_recorder.py question`
+   - 快测 → `echo '{"score":2,"total":3,"topics":["链表","栈","队列"]}' | python tools/learning_recorder.py quiz`  
+   - 日记 → `echo '{"content":"XX"}' | python tools/learning_recorder.py journal`
+   - 薄弱点 → `echo '{"subject":"XX","topic":"XX"}' | python tools/learning_recorder.py weak_point`
