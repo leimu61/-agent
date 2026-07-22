@@ -512,17 +512,19 @@ Q3: 今天哪个知识点最模糊？
 📝 有空补上就好，别给自己压力~
 ```
 
-**Step 4 — 计时状态持久化（tomato_timer.py）**
+**Step 4 — 计时状态持久化（pomodoro.py）**
 
 ```
-启动 → 调用 tomato_timer start
-暂停 → 调用 tomato_timer pause(reason)  → 保留剩余时间
-恢复 → 调用 tomato_timer resume()       → 继续倒计时
-停止 → 调用 tomato_timer stop(reason)   → 计有效时长
-放弃 → 调用 tomato_timer stop(reason, abandon=True) → 不计入
+启动 → python tools/pomodoro.py start "科目" "知识点"
+暂停 → python tools/pomodoro.py pause  → 保留状态
+恢复 → python tools/pomodoro.py resume → 继续计时
+停止 → python tools/pomodoro.py stop   → 输出 session 记录
+```
 
-关闭 Hermes 重启 → Memory 文件保留 → 未结束番茄不丢失
-暂停超 2 小时     → 自动作废本轮
+状态文件：`~/.hermes/pomodoro_state.json`（与仪表盘共享）
+关闭 Hermes 重启 → 状态保留
+
+💡 **仪表盘互操作**：启动 `cd dashboard && python server.py` 后在浏览器中也可操作番茄钟，按钮与 Hermes 对话共用同一状态文件，操作互通。
 ```
 
 **Step 5 — 数据联动**
@@ -550,7 +552,7 @@ Q3: 今天哪个知识点最模糊？
 
 ### 8.6 番茄统计
 
-学生说"番茄统计"时，调用 `tomato_timer stats` 获取数据输出。
+学生说"番茄统计"时，调用 `python tools/pomodoro.py today` 获取数据输出。
 新增：中断原因分布、中断率趋势。
 
 ### 8.7 与学习规划联动
